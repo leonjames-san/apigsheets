@@ -58,6 +58,9 @@ function handleRequest(e) {
       case 'addSheet':
         result = createSheet(request.sheetName);
         break;
+      case 'renameSheet':
+        result = renameSheet(request.sheetName, request.newSheetName);
+        break;
       case 'deleteSheet':
         result = deleteSheet(request.sheetName);
         break;
@@ -121,6 +124,20 @@ function deleteSheet(sheetName) {
   
   ss.deleteSheet(sheet);
   return `Aba '${sheetName}' excluída com sucesso.`;
+}
+
+function renameSheet(sheetName, newSheetName) {
+  if (!sheetName) throw new Error("Nome da aba (sheetName) é obrigatório.");
+  if (!newSheetName) throw new Error("Novo nome da aba (newSheetName) é obrigatório.");
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) throw new Error(`A aba '${sheetName}' não foi encontrada.`);
+  if (ss.getSheetByName(newSheetName)) throw new Error(`A aba '${newSheetName}' já existe.`);
+  
+  sheet.setName(newSheetName);
+  return `Aba renomeada de '${sheetName}' para '${newSheetName}' com sucesso.`;
 }
 
 // ==========================================

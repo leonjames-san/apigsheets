@@ -67,6 +67,9 @@
                 <button onclick="promptAddSheet()" class="text-green-700 border border-green-600 hover:bg-green-50 px-3 py-2 rounded text-xs font-semibold flex items-center gap-1 transition uppercase tracking-wide">
                     <i data-lucide="plus-circle" class="w-4 h-4"></i> Nova Aba
                 </button>
+                <button onclick="promptRenameSheet()" class="text-blue-700 border border-blue-600 hover:bg-blue-50 px-3 py-2 rounded text-xs font-semibold flex items-center gap-1 transition uppercase tracking-wide">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i> Renomear Aba
+                </button>
                 <button onclick="confirmDeleteSheet()" class="text-red-600 border border-red-500 hover:bg-red-50 px-3 py-2 rounded text-xs font-semibold flex items-center gap-1 transition uppercase tracking-wide">
                     <i data-lucide="trash-2" class="w-4 h-4"></i> Excluir Aba
                 </button>
@@ -259,6 +262,26 @@
 
             showLoading(true, "Criando aba...");
             const result = await apiRequest({ action: 'addSheet', sheetName: name });
+            showLoading(false);
+            
+            if (result) {
+                alert(result);
+                loadSheets(); 
+            }
+        }
+
+        async function promptRenameSheet() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            if (!sheetName) {
+                alert("Selecione uma aba para renomear.");
+                return;
+            }
+
+            const newName = prompt(`Digite o novo nome para a aba "${sheetName}":`);
+            if (!newName || newName === sheetName) return;
+
+            showLoading(true, "Renomeando aba...");
+            const result = await apiRequest({ action: 'renameSheet', sheetName: sheetName, newSheetName: newName });
             showLoading(false);
             
             if (result) {
