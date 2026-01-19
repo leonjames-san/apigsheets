@@ -208,8 +208,13 @@
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
 
-                const json = await response.json();
-                console.log("Resposta API:", json);
+                const text = await response.text();
+                console.log("Resposta bruta da API:", text);
+                
+                const json = JSON.parse(text);
+                console.log("Resposta parseada como JSON:", json);
+                console.log("Status:", json.status);
+                console.log("Data:", json.data);
                 
                 if (json.status === 'error') {
                     throw new Error(json.message);
@@ -301,11 +306,18 @@
             showLoading(false);
 
             console.log("Dados retornados pela API:", data);
+            console.log("Tipo de dados:", typeof data);
+            console.log("É array?", Array.isArray(data));
+            if (data && data.length > 0) {
+                console.log("Primeiro item:", data[0]);
+                console.log("Chaves do primeiro item:", Object.keys(data[0]));
+            }
             
             // Garante que data é um array
             currentData = Array.isArray(data) ? data : [];
             
             console.log("Dados processados:", currentData);
+            console.log("Quantidade de registros:", currentData.length);
             
             document.getElementById('dataSection').classList.remove('hidden');
             renderTable();
@@ -317,6 +329,11 @@
             const emptyState = document.getElementById('emptyState');
             const recordCount = document.getElementById('recordCount');
             
+            console.log("=== INICIANDO renderTable ===");
+            console.log("currentData:", currentData);
+            console.log("currentData.length:", currentData.length);
+            console.log("typeof currentData:", typeof currentData);
+            
             thead.innerHTML = '';
             tbody.innerHTML = '';
             recordCount.innerText = `${currentData.length} registros`;
@@ -324,18 +341,20 @@
             console.log("Renderizando tabela com", currentData.length, "registros");
 
             if (!currentData || currentData.length === 0) {
-                console.log("Nenhum dado para exibir");
+                console.log("Nenhum dado para exibir - mostrando estado vazio");
                 emptyState.classList.remove('hidden');
                 tableHeaders = []; 
                 return;
             }
 
+            console.log("Dados encontrados - escondendo estado vazio");
             emptyState.classList.add('hidden');
 
             // 1. Extrair Cabeçalhos do primeiro objeto
             // Filtra chaves internas se houver
             tableHeaders = Object.keys(currentData[0]);
             console.log("Cabeçalhos extraídos:", tableHeaders);
+            console.log("Quantidade de colunas:", tableHeaders.length);
             
             // Renderizar Cabeçalho
             tableHeaders.forEach(header => {
@@ -388,8 +407,12 @@
                 divActions.appendChild(btnDel);
                 tdAction.appendChild(divActions);
                 tr.appendChild(tdAction);
+                
+                // *** LINHA IMPORTANTE: ADICIONAR TR AO TBODY ***
+                tbody.appendChild(tr);
             });
             
+            console.log("Linhas renderizadas e adicionadas ao tbody");
             lucide.createIcons();
         }
 
