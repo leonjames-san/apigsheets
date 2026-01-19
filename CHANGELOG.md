@@ -2,6 +2,13 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [1.1.0] - 2026-01-19
+
+### Added
+- **Funcionalidade de renomear abas** — Novo botão "Renomear Aba" na interface
+- Nova ação `renameSheet` na API do Apps Script
+- Suporte completo para renomear abas com validação
+
 ## [1.0.1] - 2026-01-19
 
 ### Fixed
@@ -18,6 +25,9 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 ### Improved
 - Seleção automática da primeira aba após conectar ao Google Sheets
 - Tratamento de dados vazios com mensagens mais claras no console
+
+### Removed
+- Logs de debug desnecessários do console para melhor legibilidade
 
 ## [1.0.0] - 2026-01-19
 
