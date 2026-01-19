@@ -78,9 +78,12 @@ function handleRequest(e) {
       case 'delete': // DELETE
         result = deleteRow(request.sheetName, request.id);
         break;
+      case 'renameColumn': // Renomear coluna
+        result = renameColumn(request.sheetName, request.oldColumnName, request.newColumnName);
+        break;
 
       default:
-        throw new Error("Ação inválida ou não fornecida. Ações válidas: getSheets, addSheet, deleteSheet, read, create, update, delete.");
+        throw new Error("Ação inválida ou não fornecida. Ações válidas: getSheets, addSheet, renameSheet, deleteSheet, read, create, update, delete, renameColumn.");
     }
 
     return responseJSON({ status: 'success', data: result });
@@ -243,6 +246,38 @@ function deleteRow(sheetName, id) {
 
   sheet.deleteRow(rowIndex);
   return `Registro com ID '${id}' excluído.`;
+}
+
+// RENAME COLUMN: Renomeia uma coluna (cabeçalho)
+function renameColumn(sheetName, oldColumnName, newColumnName) {
+  if (!oldColumnName) throw new Error("Nome da coluna atual (oldColumnName) é obrigatório.");
+  if (!newColumnName) throw new Error("Novo nome da coluna (newColumnName) é obrigatório.");
+
+  const sheet = getSheetOrThrow(sheetName);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  
+  let columnIndex = -1;
+
+  // Procura o índice da coluna
+  for (let i = 0; i < headers.length; i++) {
+    if (headers[i] === oldColumnName) {
+      columnIndex = i;
+      break;
+    }
+  }
+
+  if (columnIndex === -1) throw new Error(`Coluna '${oldColumnName}' não encontrada.`);
+
+  // Verifica se o novo nome já existe
+  if (headers.includes(newColumnName)) {
+    throw new Error(`A coluna '${newColumnName}' já existe.`);
+  }
+
+  // Atualiza o cabeçalho (linha 1)
+  sheet.getRange(1, columnIndex + 1).setValue(newColumnName);
+
+  return `Coluna renomeada de '${oldColumnName}' para '${newColumnName}' com sucesso.`;
 }
 
 // ==========================================

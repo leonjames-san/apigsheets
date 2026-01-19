@@ -313,6 +313,27 @@
             }
         }
 
+        async function promptRenameColumn(oldColumnName) {
+            const newColumnName = prompt(`Digite o novo nome para a coluna "${oldColumnName}":`, oldColumnName);
+            if (!newColumnName || newColumnName === oldColumnName) return;
+
+            const sheetName = document.getElementById('sheetSelect').value;
+            
+            showLoading(true, "Renomeando coluna...");
+            const result = await apiRequest({
+                action: 'renameColumn',
+                sheetName: sheetName,
+                oldColumnName: oldColumnName,
+                newColumnName: newColumnName
+            });
+            showLoading(false);
+            
+            if (result) {
+                alert(result);
+                loadTableData(); // Recarrega a tabela com o novo nome da coluna
+            }
+        }
+
         // --- CRUD de Dados ---
 
         async function loadTableData() {
@@ -356,8 +377,13 @@
             // Renderizar Cabeçalho
             tableHeaders.forEach(header => {
                 const th = document.createElement('th');
-                th.className = "px-4 py-3 border-b text-slate-500 font-semibold";
+                th.className = "px-4 py-3 border-b text-slate-500 font-semibold cursor-pointer hover:bg-slate-100 transition group relative";
                 th.innerText = header;
+                th.title = "Clique para renomear esta coluna";
+                th.onclick = (e) => {
+                    e.stopPropagation();
+                    promptRenameColumn(header);
+                };
                 thead.appendChild(th);
             });
             // Coluna de Ações
