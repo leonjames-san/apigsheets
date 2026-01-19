@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Google Sheets API</title>
+    <!-- Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ícones -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans">
+
+    <!-- Configuração e Cabeçalho -->
+    <header class="bg-white shadow-md p-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-xl font-bold text-blue-600 flex items-center gap-2">
+                <i data-lucide="table-2"></i> Gestor de Planilha
+            </h1>
+            
+            <div class="flex-1 w-full md:max-w-xl relative group">
+                <input type="text" id="apiUrl" 
+                    placeholder="Cole a URL do Web App (exec) aqui..." 
+                    class="w-full text-xs p-2 border rounded border-slate-300 focus:outline-none focus:border-blue-500 text-slate-500"
+                    value="https://script.google.com/macros/s/AKfycbwBAFrFELzIjDYGQMx5gd_GJiBj-gdTc7hkgM5QmkrcDO1VRmSNiw6UPwXNYT0RIyUP/exec">
+                <div class="absolute hidden group-hover:block bg-black text-white text-xs p-1 rounded -bottom-8 left-0 z-10 w-full text-center">
+                    Certifique-se de que a Implantação está como "Qualquer Pessoa" (Anyone)
+                </div>
+            </div>
+            
+            <button onclick="loadSheets()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition shadow-sm">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Conectar
+            </button>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl mx-auto p-4 space-y-6">
+
+        <!-- Barra de Controle da Aba -->
+        <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col md:flex-row gap-4 justify-between items-end md:items-center border border-slate-200">
+            
+            <div class="w-full md:w-auto flex-1">
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Aba Selecionada</label>
+                <div class="flex gap-2">
+                    <select id="sheetSelect" onchange="loadTableData()" class="flex-1 p-2 border rounded bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <option value="" disabled selected>... Clique em Conectar ...</option>
+                    </select>
+                    <button onclick="loadTableData()" class="p-2 bg-slate-100 hover:bg-slate-200 rounded border text-slate-600" title="Recarregar Dados">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="promptAddSheet()" class="text-green-700 border border-green-600 hover:bg-green-50 px-3 py-2 rounded text-xs font-semibold flex items-center gap-1 transition uppercase tracking-wide">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Nova Aba
+                </button>
+                <button onclick="confirmDeleteSheet()" class="text-red-600 border border-red-500 hover:bg-red-50 px-3 py-2 rounded text-xs font-semibold flex items-center gap-1 transition uppercase tracking-wide">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Excluir Aba
+                </button>
+            </div>
+        </div>
+
+        <!-- Área de Dados -->
+        <div id="dataSection" class="hidden space-y-4">
+            
+            <!-- Barra de Ações da Tabela -->
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                    <span id="currentSheetTitle">Dados</span>
+                    <span class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full" id="recordCount">0 registros</span>
+                </h2>
+                <button onclick="openModal('create')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow-sm flex items-center gap-2 transition text-sm font-medium">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Novo Registro
+                </button>
+            </div>
+
+            <!-- Tabela -->
+            <div class="overflow-x-auto bg-white rounded-lg shadow border border-slate-200">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold tracking-wider">
+                        <tr id="tableHeader">
+                            <!-- Cabeçalhos injetados via JS -->
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-sm divide-y divide-slate-100">
+                        <!-- Linhas injetadas via JS -->
+                    </tbody>
+                </table>
+                
+                <!-- Estado Vazio -->
+                <div id="emptyState" class="hidden flex flex-col items-center justify-center p-12 text-center text-slate-400">
+                    <i data-lucide="inbox" class="w-12 h-12 mb-3 text-slate-300"></i>
+                    <p class="font-medium">Nenhum dado encontrado nesta aba.</p>
+                    <p class="text-xs mt-1">Certifique-se de que a Linha 1 da planilha contém os cabeçalhos.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estado de Carregamento -->
+        <div id="loadingState" class="hidden fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-blue-500 h-12 w-12 mb-4"></div>
+            <p class="text-slate-600 font-bold animate-pulse text-lg" id="loadingText">Conectando...</p>
+            <p class="text-slate-400 text-xs mt-2">Isso pode levar alguns segundos...</p>
+        </div>
+
+    </main>
+
+    <!-- Modal de Formulário -->
+    <div id="formModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div class="bg-slate-50 p-4 border-b flex justify-between items-center">
+                <h3 id="modalTitle" class="font-bold text-lg text-slate-700">Novo Registro</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div id="modalFormContent" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <!-- Inputs gerados dinamicamente -->
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded font-medium text-sm transition">Cancelar</button>
+                <button id="saveButton" onclick="submitForm()" class="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded font-medium text-sm shadow-md transition flex items-center gap-2">
+                    <i data-lucide="save" class="w-4 h-4"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Lógico -->
+    <script>
+        // --- Estado Global ---
+        let currentData = [];
+        let tableHeaders = [];
+        let currentMode = 'create'; 
+        let editingId = null;
+
+        // --- Inicialização ---
+        lucide.createIcons();
+        
+        // --- Utilitários de API ---
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.trim();
+        }
+
+        function showLoading(show, text = "Carregando...") {
+            const el = document.getElementById('loadingState');
+            const txt = document.getElementById('loadingText');
+            if (show) {
+                txt.innerText = text;
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Função Central de API
+         * Usa GET para ler dados (mais rápido e seguro contra CORS em redirecionamentos)
+         * Usa POST para escrever dados
+         */
+        async function apiRequest(payload) {
+            const baseUrl = getApiUrl();
+            if (!baseUrl) {
+                alert("Por favor, insira a URL da API.");
+                return null;
+            }
+
+            // Decide método baseado na ação
+            const isReadOperation = ['getSheets', 'read'].includes(payload.action);
+            
+            let url = baseUrl;
+            let options = {
+                redirect: "follow", // Importante para GAS
+            };
+
+            if (isReadOperation) {
+                // Monta Query String para GET
+                const params = new URLSearchParams(payload).toString();
+                url += `?${params}`;
+                options.method = 'GET';
+            } else {
+                // Configura POST
+                options.method = 'POST';
+                // Usando text/plain para evitar Preflight CORS OPTIONS request que o GAS não suporta
+                options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+                options.body = JSON.stringify(payload);
+            }
+
+            try {
+                const response = await fetch(url, options);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const json = await response.json();
+                
+                if (json.status === 'error') {
+                    throw new Error(json.message);
+                }
+                
+                return json.data;
+            } catch (error) {
+                console.error("API Error:", error);
+                alert(`Falha na comunicação: ${error.message}\nVerifique se a URL está correta e a implantação é pública.`);
+                return null;
+            }
+        }
+
+        // --- Gerenciamento de Abas ---
+
+        async function loadSheets() {
+            showLoading(true, "Conectando à planilha...");
+            const sheets = await apiRequest({ action: 'getSheets' });
+            showLoading(false);
+
+            if (sheets && Array.isArray(sheets)) {
+                const select = document.getElementById('sheetSelect');
+                select.innerHTML = '';
+                
+                if (sheets.length === 0) {
+                     const option = document.createElement('option');
+                     option.text = "Nenhuma aba encontrada";
+                     select.add(option);
+                     return;
+                }
+
+                sheets.forEach(sheet => {
+                    const option = document.createElement('option');
+                    option.value = sheet;
+                    option.innerText = sheet;
+                    select.appendChild(option);
+                });
+                
+                // Carregar dados da primeira aba automaticamente
+                loadTableData();
+            }
+        }
+
+        async function promptAddSheet() {
+            const name = prompt("Nome da nova aba:");
+            if (!name) return;
+
+            showLoading(true, "Criando aba...");
+            const result = await apiRequest({ action: 'addSheet', sheetName: name });
+            showLoading(false);
+            
+            if (result) {
+                alert(result);
+                loadSheets(); 
+            }
+        }
+
+        async function confirmDeleteSheet() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            if (!sheetName) return;
+
+            if (confirm(`ATENÇÃO: Deseja EXCLUIR a aba "${sheetName}"? Isso apagará todos os dados dela permanentemente.`)) {
+                showLoading(true, "Excluindo aba...");
+                const result = await apiRequest({ action: 'deleteSheet', sheetName: sheetName });
+                showLoading(false);
+                if (result) {
+                    alert(result);
+                    loadSheets();
+                }
+            }
+        }
+
+        // --- CRUD de Dados ---
+
+        async function loadTableData() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            if (!sheetName) return;
+
+            document.getElementById('currentSheetTitle').innerText = sheetName;
+            showLoading(true, "Lendo dados...");
+            
+            const data = await apiRequest({ action: 'read', sheetName: sheetName });
+            showLoading(false);
+
+            // Garante que data é um array
+            currentData = Array.isArray(data) ? data : [];
+            
+            document.getElementById('dataSection').classList.remove('hidden');
+            renderTable();
+        }
+
+        function renderTable() {
+            const thead = document.getElementById('tableHeader');
+            const tbody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const recordCount = document.getElementById('recordCount');
+            
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            recordCount.innerText = `${currentData.length} registros`;
+
+            if (!currentData || currentData.length === 0) {
+                emptyState.classList.remove('hidden');
+                tableHeaders = []; 
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // 1. Extrair Cabeçalhos do primeiro objeto
+            // Filtra chaves internas se houver
+            tableHeaders = Object.keys(currentData[0]);
+            
+            // Renderizar Cabeçalho
+            tableHeaders.forEach(header => {
+                const th = document.createElement('th');
+                th.className = "px-4 py-3 border-b text-slate-500 font-semibold";
+                th.innerText = header;
+                thead.appendChild(th);
+            });
+            // Coluna de Ações
+            const thAction = document.createElement('th');
+            thAction.className = "px-4 py-3 border-b text-center w-24";
+            thAction.innerText = "Ações";
+            thead.appendChild(thAction);
+
+            // Renderizar Linhas
+            currentData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition group";
+                
+                tableHeaders.forEach(header => {
+                    const td = document.createElement('td');
+                    td.className = "px-4 py-3 border-b text-slate-700 whitespace-nowrap max-w-xs overflow-hidden text-ellipsis";
+                    td.innerText = row[header];
+                    td.title = row[header]; // Tooltip
+                    tr.appendChild(td);
+                });
+
+                // Botões de Ação
+                const tdAction = document.createElement('td');
+                tdAction.className = "px-4 py-3 border-b text-center";
+                
+                const divActions = document.createElement('div');
+                divActions.className = "flex justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity";
+                
+                // Botão Editar
+                const btnEdit = document.createElement('button');
+                btnEdit.innerHTML = '<i data-lucide="edit-2" class="w-4 h-4"></i>';
+                btnEdit.className = "text-blue-500 hover:bg-blue-100 p-1.5 rounded-full transition";
+                btnEdit.title = "Editar";
+                btnEdit.onclick = () => openModal('update', index);
+                
+                // Botão Excluir
+                const btnDel = document.createElement('button');
+                btnDel.innerHTML = '<i data-lucide="trash" class="w-4 h-4"></i>';
+                btnDel.className = "text-red-500 hover:bg-red-100 p-1.5 rounded-full transition";
+                btnDel.title = "Excluir";
+                btnDel.onclick = () => deleteRow(row);
+
+                divActions.appendChild(btnEdit);
+                divActions.appendChild(btnDel);
+                tdAction.appendChild(divActions);
+                tr.appendChild(tdAction);
+            });
+            
+            lucide.createIcons();
+        }
+
+        async function deleteRow(rowObj) {
+            const idKey = tableHeaders[0]; // Assume 1ª coluna como ID
+            const idValue = rowObj[idKey];
+
+            if (!confirm(`Excluir registro?\n${idKey}: ${idValue}`)) return;
+
+            const sheetName = document.getElementById('sheetSelect').value;
+            
+            showLoading(true, "Excluindo...");
+            await apiRequest({
+                action: 'delete',
+                sheetName: sheetName,
+                id: idValue
+            });
+            showLoading(false);
+            loadTableData();
+        }
+
+        // --- Lógica do Modal / Formulário ---
+
+        function openModal(mode, rowIndex = null) {
+            currentMode = mode;
+            const modal = document.getElementById('formModal');
+            const container = document.getElementById('modalFormContent');
+            const title = document.getElementById('modalTitle');
+            
+            container.innerHTML = '';
+            modal.classList.remove('hidden');
+
+            let fields = tableHeaders;
+            
+            // Fallback se não houver cabeçalhos
+            if (fields.length === 0) {
+                fields = ['ID', 'Nome', 'Email', 'Telefone', 'Status'];
+            }
+
+            title.innerText = mode === 'create' ? 'Adicionar Registro' : 'Editar Registro';
+            title.className = mode === 'create' ? "font-bold text-lg text-green-700" : "font-bold text-lg text-blue-700";
+
+            let rowData = {};
+            if (mode === 'update' && rowIndex !== null) {
+                rowData = currentData[rowIndex];
+                editingId = rowData[fields[0]]; 
+            }
+
+            fields.forEach(field => {
+                const wrapper = document.createElement('div');
+                
+                const label = document.createElement('label');
+                label.className = "block text-xs font-bold text-slate-500 uppercase mb-1 ml-1";
+                label.innerText = field;
+
+                const input = document.createElement('input');
+                input.type = "text";
+                input.id = `input-${field}`;
+                input.className = "w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition";
+                input.value = rowData[field] || "";
+                input.placeholder = `Digite ${field}...`;
+
+                if (mode === 'update' && field === fields[0]) {
+                    input.disabled = true;
+                    input.className += " bg-slate-100 text-slate-400 cursor-not-allowed";
+                    input.title = "O ID não pode ser alterado";
+                }
+
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('formModal').classList.add('hidden');
+        }
+
+        async function submitForm() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            const container = document.getElementById('modalFormContent');
+            const inputs = container.querySelectorAll('input');
+            
+            const dataObj = {};
+            let hasEmptyFields = false;
+
+            inputs.forEach(input => {
+                const key = input.id.replace('input-', '');
+                dataObj[key] = input.value;
+            });
+
+            const action = currentMode; 
+            
+            const payload = {
+                action: action,
+                sheetName: sheetName,
+                data: dataObj
+            };
+
+            if (action === 'update') {
+                payload.id = editingId;
+            }
+
+            closeModal();
+            showLoading(true, action === 'create' ? "Adicionando..." : "Salvando...");
+            
+            const result = await apiRequest(payload);
+            showLoading(false);
+            
+            if (result) {
+                // Pequeno delay para garantir que o GAS atualizou
+                setTimeout(() => loadTableData(), 500);
+            }
+        }
+    </script>
+</body>
+</html>
