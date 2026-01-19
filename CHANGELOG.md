@@ -2,12 +2,28 @@
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
+## [1.2.0] - 2026-01-19
+
+### Added
+- **Funcionalidade de renomear colunas** — Clique no cabeçalho da tabela para renomear a coluna
+- Nova ação `renameColumn` na API do Apps Script
+- Validação de nomes duplicados para colunas
+- UX melhorado: cabeçalhos com hover effect e cursor pointer
+
+### Improved
+- Cabeçalhos da tabela agora indicam que são clicáveis (cursor-pointer e hover)
+- Melhor feedback visual ao renomear colunas
+
 ## [1.1.0] - 2026-01-19
 
 ### Added
 - **Funcionalidade de renomear abas** — Novo botão "Renomear Aba" na interface
 - Nova ação `renameSheet` na API do Apps Script
 - Suporte completo para renomear abas com validação
+
+### Added (Footer)
+- Footer fixo na parte inferior da página
+- Versão e créditos (DTI-PGE) na footer
 
 ## [1.0.1] - 2026-01-19
 
