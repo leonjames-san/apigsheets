@@ -199,6 +199,8 @@
                 options.body = JSON.stringify(payload);
             }
 
+            console.log("Requisição API:", { method: options.method, url, payload });
+
             try {
                 const response = await fetch(url, options);
                 
@@ -207,6 +209,7 @@
                 }
 
                 const json = await response.json();
+                console.log("Resposta API:", json);
                 
                 if (json.status === 'error') {
                     throw new Error(json.message);
@@ -238,15 +241,18 @@
                      return;
                 }
 
-                sheets.forEach(sheet => {
+                sheets.forEach((sheet, index) => {
                     const option = document.createElement('option');
                     option.value = sheet;
                     option.innerText = sheet;
                     select.appendChild(option);
                 });
                 
-                // Carregar dados da primeira aba automaticamente
-                loadTableData();
+                // Seleciona a primeira aba e carrega dados
+                select.selectedIndex = 0;
+                if (select.value) {
+                    loadTableData();
+                }
             }
         }
 
@@ -283,7 +289,10 @@
 
         async function loadTableData() {
             const sheetName = document.getElementById('sheetSelect').value;
-            if (!sheetName) return;
+            if (!sheetName) {
+                console.warn("Nenhuma aba selecionada");
+                return;
+            }
 
             document.getElementById('currentSheetTitle').innerText = sheetName;
             showLoading(true, "Lendo dados...");
@@ -291,8 +300,12 @@
             const data = await apiRequest({ action: 'read', sheetName: sheetName });
             showLoading(false);
 
+            console.log("Dados retornados pela API:", data);
+            
             // Garante que data é um array
             currentData = Array.isArray(data) ? data : [];
+            
+            console.log("Dados processados:", currentData);
             
             document.getElementById('dataSection').classList.remove('hidden');
             renderTable();
@@ -308,7 +321,10 @@
             tbody.innerHTML = '';
             recordCount.innerText = `${currentData.length} registros`;
 
+            console.log("Renderizando tabela com", currentData.length, "registros");
+
             if (!currentData || currentData.length === 0) {
+                console.log("Nenhum dado para exibir");
                 emptyState.classList.remove('hidden');
                 tableHeaders = []; 
                 return;
@@ -319,6 +335,7 @@
             // 1. Extrair Cabeçalhos do primeiro objeto
             // Filtra chaves internas se houver
             tableHeaders = Object.keys(currentData[0]);
+            console.log("Cabeçalhos extraídos:", tableHeaders);
             
             // Renderizar Cabeçalho
             tableHeaders.forEach(header => {
